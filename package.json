@@ -1,0 +1,17 @@
+{
+  "name": "med-anki-builder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^6.3.289",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

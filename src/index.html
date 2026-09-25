@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Med Anki Builder</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #dde1e7;
+    --accent: #2f5bd3; --accent-text: #ffffff; --ok: #1f7a4d; --ok-bg: #e8f5ee; --warn: #9a5b00;
+    --warn-bg: #fff4e0; --error: #b42318; --error-bg: #fdecea; --cloze: #2f5bd3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b1f27; --text: #e6e9ef; --muted: #9aa3b2; --border: #2e3440;
+      --accent: #6d8ff0; --accent-text: #0d1016; --ok: #5fcf95; --ok-bg: #16281f; --warn: #f0b95b;
+      --warn-bg: #2b2213; --error: #f2837a; --error-bg: #2d1715; --cloze: #8fa9ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  .lede { color: var(--muted); margin: 0 0 20px; }
+  section.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  label.field { display: block; margin-bottom: 14px; }
+  label.field > span { display: block; font-weight: 600; margin-bottom: 4px; }
+  .hint-text, .muted { color: var(--muted); font-size: 13px; }
+  input[type=text], input[type=password], select, textarea {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+    border-radius: 7px; padding: 8px 10px;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input[type=file] { font: inherit; max-width: 100%; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+  .check-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .check-row > span { flex: 1; }
+  button { font: inherit; border-radius: 7px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: default; }
+  .link-btn { border: 0; background: none; color: var(--muted); padding: 2px 4px; font-size: 13px; text-decoration: underline; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .status { margin-top: 12px; min-height: 1.5em; }
+  .status.ok { color: var(--ok); } .status.error { color: var(--error); }
+  details summary { cursor: pointer; font-weight: 600; }
+  .callout { border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  .callout.ok { background: var(--ok-bg); } .callout.warn { background: var(--warn-bg); }
+  .callout ul { margin: 4px 0 0; padding-left: 20px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+  @media (max-width: 600px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--bg); border-radius: 8px; padding: 10px; }
+  .stat b { display: block; font-size: 20px; } .stat span { color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr.warn td { background: var(--warn-bg); }
+  ul.plain { padding-left: 20px; margin: 0; }
+  ol.cards { list-style: none; padding: 0; margin: 0; }
+  li.card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  li.card.flagged { border-color: var(--warn); }
+  .card-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .card-extra { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .cloze { color: var(--cloze); font-weight: 700; }
+  .hint { color: var(--muted); font-size: 12px; margin-left: 3px; }
+  .hint.missing { color: var(--error); }
+  .tag { background: var(--bg); border-radius: 4px; padding: 0 5px; }
+  .overflow { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Med Anki Builder</h1>
+  <p class="lede">Upload a lecture, get an Anki cloze deck that follows your med-anki rules: LO coverage, emphasis-driven blanks, cross-links and board-style cards. One Claude API call per lecture, paid from your own API key.</p>
+
+  <section class="panel">
+    <h2>1 · Settings</h2>
+    <label class="field"><span>Anthropic API key</span>
+      <input id="api-key" type="password" autocomplete="off" placeholder="sk-ant-…">
+    </label>
+    <label class="check-row"><input id="remember-key" type="checkbox"> <span>Remember the key on this device <span class="muted">(stored in this browser only; skip this on shared computers)</span></span></label>
+    <div class="row" style="margin-top:12px">
+      <label class="field"><span>Model</span>
+        <select id="model">
+          <option value="claude-opus-5">Claude Opus 5 · best cards · $5 / $25 per M tokens</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 · ~60% cheaper · $2 / $10</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 · cheapest · $1 / $5 · ≤100 pages</option>
+        </select>
+      </label>
+      <label class="field"><span>Effort</span>
+        <select id="effort">
+          <option value="low">Low · cheapest</option>
+          <option value="medium">Medium</option>
+          <option value="high" selected>High · recommended</option>
+          <option value="xhigh">Extra high · slowest</option>
+        </select>
+        <span id="effort-note" class="hint-text" hidden>Haiku 4.5 doesn't support effort.</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>2 · Lecture</h2>
+    <label class="field"><span>Slides PDF</span>
+      <input id="slides" type="file" accept="application/pdf,.pdf">
+      <span id="slides-info" class="hint-text">Use your annotated copy if you have one: Claude sees your circles and underlines.</span>
+    </label>
+    <label class="field"><span>Deck name</span>
+      <input id="deck-name" type="text" value="MWMSK::" placeholder="MWMSK::Anatomy::Back::Back_Muscles">
+    </label>
+    <label class="field"><span>Learning objectives</span>
+      <textarea id="objectives" placeholder="Paste the LOs verbatim, one per line"></textarea>
+    </label>
+    <label class="field"><span>Transcript <span class="muted">(optional)</span></span>
+      <input id="transcript-file" type="file" accept=".txt,.vtt,.srt,.md,.pdf,text/plain,application/pdf">
+      <textarea id="transcript" placeholder="…or paste it here" style="margin-top:6px"></textarea>
+    </label>
+    <label class="field"><span>Notes for this lecture <span class="muted">(optional)</span></span>
+      <textarea id="notes" placeholder="e.g. prof said skip slide 12; the table on slide 20 is high yield"></textarea>
+    </label>
+    <details>
+      <summary>Link to earlier lectures this week</summary>
+      <p class="hint-text">Ticked decks are sent along so Claude can cross-link to them. Each one adds a little to the cost.</p>
+      <div id="earlier-decks"></div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>3 · Build</h2>
+    <div class="actions">
+      <button id="estimate" type="button">Estimate cost (free)</button>
+      <button id="build" type="button" class="primary">Build deck</button>
+      <button id="stop" type="button" hidden>Stop</button>
+    </div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="results" class="panel" hidden>
+    <h2>4 · Your deck</h2>
+    <div id="summary" class="summary"></div>
+    <div class="actions" style="margin:12px 0">
+      <button id="dl-apkg" type="button" class="primary">Download .apkg</button>
+      <button id="dl-json" type="button">Download JSON backup</button>
+    </div>
+    <div id="lint" class="callout"></div>
+    <h3>LO coverage</h3>
+    <div class="overflow"><table id="lo-table"></table></div>
+    <h3>Cross-links built in</h3>
+    <ul id="cross-links" class="plain"></ul>
+    <h3>Slides for image occlusion</h3>
+    <ul id="io-slides" class="plain"></ul>
+    <h3>Left out on purpose</h3>
+    <ul id="left-out" class="plain"></ul>
+    <p id="model-notes" class="callout warn" hidden></p>
+    <h3>Cards</h3>
+    <ol id="cards" class="cards"></ol>
+  </section>
+</main>
+<script type="text/plain" id="pdf-worker"><!--PDF_WORKER--></script>
+<script type="text/plain" id="sql-wasm"><!--SQL_WASM--></script>
+<script><!--APP_BUNDLE--></script>
+</body>
+</html>
